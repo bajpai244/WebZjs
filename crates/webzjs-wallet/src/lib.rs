@@ -6,7 +6,7 @@
 #[cfg(feature = "wasm")]
 pub mod bindgen;
 
-mod error;
+pub mod error;
 pub mod init;
 
 pub mod wallet;

@@ -1,0 +1,24 @@
+[package]
+name = "zcash-client"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+webzjs-wallet  = {  path = "../webzjs-wallet" }
+webzjs-common = { path = "../webzjs-common" }
+
+prost.workspace = true
+tonic = { workspace = true, features = ["prost", "tls-native-roots"] }
+
+zcash_client_backend = { workspace = true, default-features = false, features = ["sync", "lightwalletd-tonic", "wasm-bindgen", "orchard", "pczt", "transparent-inputs"] }
+zcash_client_memory = { workspace = true, features = ["orchard", "transparent-inputs"] }
+zcash_protocol = { workspace = true }
+
+tokio = { workspace = true, features = ["full"] }
+hex.workspace = true
+dotenvy.workspace = true
+
+
+
+[lints]
+workspace = true

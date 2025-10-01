@@ -6,6 +6,7 @@ members = [
     "crates/webzjs-keys",
     "crates/webzjs-requests",
     "crates/webzjs-wallet",
+    "crates/zcash-client"
 ]
 
 [profile.release]
@@ -81,6 +82,7 @@ tempfile = "3.12"
 # Used in Native tests
 tokio = { version = "1.0", features = ["rt", "macros"] }
 byte-unit = { version = "5.1.4", features = ["byte"] }
+dotenvy = "0.15"
 
 
 [patch.crates-io]

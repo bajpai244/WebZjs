@@ -166,6 +166,11 @@ where
         })
     }
 
+    pub fn db(&self) -> Arc<tokio::sync::RwLock<W>> {
+        let db = &self.db;
+        db.clone()
+    }
+
     /// Add a new account to the wallet
     ///
     /// # Arguments
