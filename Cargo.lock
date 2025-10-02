@@ -3851,6 +3851,7 @@ dependencies = [
  "tokio",
  "tonic",
  "tower 0.5.2",
+ "uuid",
  "webzjs-common",
  "webzjs-wallet",
  "zcash_client_backend",
