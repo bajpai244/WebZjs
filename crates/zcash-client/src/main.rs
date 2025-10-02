@@ -7,13 +7,13 @@ use axum::{
     response::IntoResponse,
     routing::{get, post},
 };
-use tower_http::cors::CorsLayer;
 use serde::{Deserialize, Serialize};
 use tokio::sync::RwLock;
 use tonic::{
     IntoRequest,
     transport::{Channel, ClientTlsConfig, Endpoint},
 };
+use tower_http::cors::CorsLayer;
 use webzjs_common::Network;
 use webzjs_wallet::Wallet;
 use zcash_client_backend::data_api::WalletRead;
@@ -37,6 +37,8 @@ struct Job {
     status: JobStatus,
     target_increase: u64,
     initial_balance: u64,
+    contract_address: String,
+    amount: u64,
 }
 
 type JobStore = Arc<RwLock<HashMap<String, Job>>>;
@@ -104,12 +106,28 @@ async fn get_current_orchard_balance(
     None
 }
 
+#[derive(Deserialize)]
+struct CreateJobRequest {
+    contract_address: String,
+    amount: u64,
+}
+
+#[derive(Serialize)]
+struct SolveRequest {
+    #[serde(rename = "contractAddress")]
+    contract_address: String,
+    amount: u64,
+}
+
 #[derive(Serialize)]
 struct CreateJobResponse {
     job_id: String,
 }
 
-async fn create_job(State(state): State<Arc<AppState>>) -> Result<impl IntoResponse, StatusCode> {
+async fn create_job(
+    State(state): State<Arc<AppState>>,
+    Json(request): Json<CreateJobRequest>,
+) -> Result<impl IntoResponse, StatusCode> {
     // Get current balance
     let initial_balance = match get_current_orchard_balance(&state.wallet, state.account_id).await {
         Some(balance) => balance,
@@ -124,6 +142,8 @@ async fn create_job(State(state): State<Arc<AppState>>) -> Result<impl IntoRespo
         status: JobStatus::Pending,
         target_increase: 100,
         initial_balance,
+        contract_address: request.contract_address,
+        amount: request.amount,
     };
 
     // Store job
@@ -142,17 +162,44 @@ async fn create_job(State(state): State<Arc<AppState>>) -> Result<impl IntoRespo
             println!("checking shielded balance.....");
 
             if let Some(current_balance) = get_current_orchard_balance(&wallet, account_id).await {
-                let mut jobs_lock = jobs.write().await;
-                if let Some(job) = jobs_lock.get_mut(&job_id_clone) {
-                    println!("current balance: {}", current_balance);
+                let (should_complete, contract_address, amount) = {
+                    let mut jobs_lock = jobs.write().await;
+                    if let Some(job) = jobs_lock.get_mut(&job_id_clone) {
+                        println!("current balance: {}", current_balance);
 
-                    if current_balance >= job.initial_balance + job.target_increase {
-                        job.status = JobStatus::Completed;
-
-                        println!("job {:?} completed", job);
+                        if current_balance >= job.initial_balance + job.target_increase {
+                            job.status = JobStatus::Completed;
+                            println!("job {:?} completed", job);
+                            (true, job.contract_address.clone(), job.amount)
+                        } else {
+                            (false, String::new(), 0)
+                        }
+                    } else {
                         break;
                     }
-                } else {
+                };
+
+                if should_complete {
+                    // Call solve endpoint
+                    let client = reqwest::Client::new();
+                    let solve_request = SolveRequest {
+                        contract_address,
+                        amount,
+                    };
+
+                    match client
+                        .post("http://localhost:4000/solve")
+                        .json(&solve_request)
+                        .send()
+                        .await
+                    {
+                        Ok(response) => {
+                            println!("Solve endpoint called successfully: {:?}", response.status());
+                        }
+                        Err(e) => {
+                            eprintln!("Failed to call solve endpoint: {:?}", e);
+                        }
+                    }
                     break;
                 }
             }
