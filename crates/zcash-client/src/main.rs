@@ -7,6 +7,7 @@ use axum::{
     response::IntoResponse,
     routing::{get, post},
 };
+use tower_http::cors::CorsLayer;
 use serde::{Deserialize, Serialize};
 use tokio::sync::RwLock;
 use tonic::{
@@ -268,7 +269,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         .route("/orchard_balance", get(get_orchard_balance))
         .route("/create_job", post(create_job))
         .route("/job_status/{job_id}", get(get_job_status))
-        .with_state(app_state);
+        .with_state(app_state)
+        .layer(CorsLayer::permissive());
 
     let listener = tokio::net::TcpListener::bind("127.0.0.1:3000").await?;
     println!("Server listening on http://127.0.0.1:3000");
