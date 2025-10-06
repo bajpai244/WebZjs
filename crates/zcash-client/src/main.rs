@@ -241,7 +241,7 @@ async fn get_job_status(
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     dotenvy::dotenv().ok();
 
-    let light_client_url = "https://zec.rocks:443";
+    let light_client_url = "https://testnet.zec.rocks:443";
 
     let tls_config = ClientTlsConfig::new().with_native_roots();
 
