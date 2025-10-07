@@ -8,7 +8,7 @@ use axum::{
     routing::{get, post},
 };
 use serde::{Deserialize, Serialize};
-use tokio::sync::RwLock;
+use tokio::{process, sync::RwLock};
 use tonic::{
     IntoRequest,
     transport::{Channel, ClientTlsConfig, Endpoint},
@@ -194,7 +194,10 @@ async fn create_job(
                         .await
                     {
                         Ok(response) => {
-                            println!("Solve endpoint called successfully: {:?}", response.status());
+                            println!(
+                                "Solve endpoint called successfully: {:?}",
+                                response.status()
+                            );
                         }
                         Err(e) => {
                             eprintln!("Failed to call solve endpoint: {:?}", e);
@@ -270,14 +273,21 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         std::process::exit(1);
     });
     let account_hd_index = 0;
-    let birthday_height = Some(3084472);
+
+    let birthday_height: u32 = std::env::var("BIRTHDAY_HEIGHT")
+        .unwrap_or_else(|_| {
+            eprintln!("Error: BIRTHDAY_HEIGHT environment variable not found");
+            std::process::exit(1);
+        })
+        .parse()
+        .expect("Error: failed to parse string to u32");
 
     let account_id = wallet
         .create_account(
             account_name,
             seed_phrase.as_str(),
             account_hd_index,
-            birthday_height,
+            Some(birthday_height),
             None,
         )
         .await?;
