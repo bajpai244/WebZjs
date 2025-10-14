@@ -22,7 +22,6 @@ use zcash_client_backend::proto::service::{
     ChainSpec, compact_tx_streamer_client::CompactTxStreamerClient,
 };
 use zcash_client_memory::MemoryWalletDb;
-use zcash_protocol::consensus::MAIN_NETWORK;
 
 type AccountId = <MemoryWalletDb<zcash_protocol::consensus::Network> as WalletRead>::AccountId;
 
@@ -55,7 +54,7 @@ async fn get_address(State(state): State<Arc<AppState>>) -> impl IntoResponse {
 
     match db.get_current_address(state.account_id) {
         Ok(Some(address)) => {
-            let address_string = address.to_address(zcash_protocol::consensus::NetworkType::Main);
+            let address_string = address.to_address(zcash_protocol::consensus::NetworkType::Test);
             (StatusCode::OK, address_string.to_string())
         }
         Ok(None) => (StatusCode::NOT_FOUND, "Address not found".to_string()),
@@ -262,10 +261,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("latest block: {:?}", latest_block);
 
     let max_checkpoints = 100;
-    let network = zcash_protocol::consensus::Network::MainNetwork;
+    let network = zcash_protocol::consensus::Network::TestNetwork;
     let db = MemoryWalletDb::new(network, max_checkpoints);
 
-    let wallet = Wallet::new(db, channel, Network::MainNetwork, NonZero::from_str("1")?)?;
+    let wallet = Wallet::new(db, channel, Network::TestNetwork, NonZero::from_str("1")?)?;
 
     let account_name = "My Account";
     let seed_phrase = std::env::var("SEED_PHRASE").unwrap_or_else(|_| {
